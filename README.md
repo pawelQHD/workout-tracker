@@ -30,7 +30,7 @@ This will allow for an easier search in case that is required in the future.
 
 I will also see what else can improve as I continue so that the next project can also be improved.
 
-### Initial commit
+### Commit 1: Initial commit
 
 The very first step in this project is using the Spring Initializr.
 
@@ -114,7 +114,7 @@ Got VCS -> Enable Version Control Integration
 
 Once this is done you need to make sure you are logged in with your GitHub account then go Git -> GitHub -> Share Project on GitHub
 
-### Database Setup and Flyway
+### Commit 2: Database Setup and Flyway
 
 After reviewing my previous project, there was one clear area that had I had to improve upon and that's how I handle database creation.
 
@@ -240,4 +240,254 @@ CREATE TABLE workout_exercises (
 At the moment this is a good starting point for our database.
 
 I can always expand it in the future as I develop this API. Flyway will make it easier to do so.
+
+### Commit 3: User, Workout, Exercise and WorkoutExercise entities
+
+This project is all about improving on the previous one. For this reason I want to have more meaningful commit names.
+
+Specifically, I will skip the word added as I was using it all the time before.
+
+For this next part I will simply add entities for my database setup.
+
+The most notable class is the ```User.java```
+
+```java
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @NotBlank(message = "Username is required")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters long")
+    @Column(name = "username", nullable = false, unique = true)
+    private String userName;
+
+    @JsonIgnore
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 50, message = "Password must be between 8 and 50 characters long")
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    @Column(name = "email", nullable = false, unique = true)
+    private String email;
+
+    @Column(name="enabled")
+    private boolean enabled = true;
+
+    @Column(name="created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Workout> workouts = new ArrayList<>();
+    
+    // constructors
+    
+    @PrePersist
+    protected void onCreate(){
+        createdAt = LocalDateTime.now();
+    }
+    
+    // getters, setters and toString
+}
+```
+
+The above code is very similar to my previous projects, with few notable changes.
+
+First we use ```@NotBlank``` annotation as it combines both ```@NotNull``` and ```@NotEmpty``` together.
+
+It also checks that the trimmed length is greater than zero. This is fantastic as it means we write less code to validate it later.
+
+Another important annotation is the ```@Email``` which validates for the right email format.
+
+Once again, this helps us greatly in the future.
+
+I also removed ```unique = true``` from the password as this made no sense. You could have users with the same password.
+
+Most importantly, I added ```@JsonIgnore``` for the password. This prevents password exposure when returning a JSON. A critical change.
+
+Another small improvement for the password is not including it inside the toString() method. This increases security.
+
+My favorite addition is the ```onCreate()``` helper method.
+
+This method simply records the time at which the entity got created. This is great as I no longer have to do this inside the Service method.
+
+We also add ```@OneToMany``` since we want to keep track of the workouts that the users have.
+
+I know the database design in theory. However, it is still something I need more practice with.
+
+Setting up Entities so that they match my database is my weakest point at the moment. This is why I took extra time to refine my understanding of it.
+
+The following section has some pointers to make it easier in the future.
+
+#### DATABASE NOTES
+
+In Spring Boot you have a small section at the end of your fields that tells spring how your tables relate to one another.
+
+The main annotations for this are ```@JoinColumn``` as well as, for example, ```@OneToMany```.
+
+You need to figure out which one of the tables is the owning side. Usually the table with the foreign key(s) is the owning side.
+
+You need to put the ```@JoinColumn``` on the owning side. Inside you need to put the foreign key ```@JoinColumn(name = "workout_id"```
+
+Note that the foreign key you need to input is the one from the database.
+
+```@JoinColumn``` often corresponds to a Java field, such as ```private Workout workout```
+
+Note that ```@JoinColumn``` is not enough on its own, and you also need to specify this Java field with a relational annotation such as ```@ManyToOne``` or ```@OneToOne```
+
+Another thing to note is that the foreign keys should not be set as Java fields since ```@JoinColumn``` gives Spring enough information.
+
+On the other side of the relationship (inverse side) you also need to tell Spring Boot how this relationship works.
+
+This time you only need, for example ```@OneToMany``` annotation.
+
+However, inside it, you need to write the following ```@OneToMany(mappedBy = "workout")```
+
+```workout``` represents Java field from the owning side. If you call it something else you need to update mappedBy accordingly.
+
+The field in our example would look something like this ```private List<WorkoutExercise> workoutExercises;```
+
+Note that mappedBy can only be used for ```@OneToMany``` or ```@ManyToMany```
+
+| Annotation  | Which Side | What It Uses                      | Java field you apply it to             |
+|-------------|-----------|-----------------------------------|----------------------------------------|
+| @ManyToOne  | Owning    | @JoinColumn(name = "Foreign key") | ```private Workout workout```          |
+| @ManyToMany | Owning    | @JoinTable(...)                   | ```private List<Role> roles;```        |
+| @ManyToMany | Inverse   | mappedBy = "Java field name"      | ```private List<User> users;```        |
+| @OneToOne   | Inverse   | mappedBy = "Java field name"      | ```private User user```                |
+| @OneToOne   | Owning    | @JoinColumn(name = "Foreign key") | ```private UserProfile profile;```     |
+| @OneToMany  | Inverse   | mappedBy = "Java field name"      | ```private List<Exercises> exercises``` |
+
+This brings us to our real world example and our entity setup.
+
+```java
+@Entity
+@Table(name = "workout_exercises")
+public class WorkoutExercise {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "sets")
+    private int sets;
+
+    @Column(name = "reps")
+    private int reps;
+
+    @Column(name = "weight")
+    private double weight;
+
+    @Column(name = "exercise_order")
+    private int exerciseOrder;
+
+    @ManyToOne
+    @JoinColumn(name = "workout_id")
+    private Workout workout;
+
+    @ManyToOne
+    @JoinColumn(name = "exercise_id")
+    private Exercise exercise;
+    
+    // constructors, getters, setters and toString
+}
+```
+
+We start with WorkoutExercise join table class as it's the easiest to explain.
+
+We have two tables and one join table. This in theory is two separate relationships.
+
+One between ```WorkoutExercise``` join table and ```Exercise``` and another between ```WorkoutExercise``` and ```Workout```
+
+I took me a while to realise this, and it's why I took my time writing the notes above.
+
+We also had to create this join table as an entity because of its extra fields such as weight, sets and reps.
+
+Usually join tables do not need to be included if they are just joining two tables together.
+
+Both workout and exercise have @ManyToOne relationship because we can have many workouts and exercises for one row of the join table.
+
+For a deeper understanding, I wanted a table that is flexible and can have one exercise linked to one workout that includes sets, reps and weight.
+
+This will allow us to change the exercises during our workout which is a very important feature. 
+
+```java
+@Entity
+@Table(name = "exercises")
+public class Exercise {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @OneToMany(mappedBy = "exercise")
+    private List<WorkoutExercise> workoutExercises;
+    
+    // constructors, getters, setters and toString
+}
+```
+
+Exercises entity is very simple. Here is where we use the mappedBy and the ```exercise``` field from out WorkoutExercise class.
+
+```java
+@Entity
+@Table(name = "workouts")
+public class Workout {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private int id;
+
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "notes")
+    private String notes;
+
+    @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL)
+    private List<WorkoutExercise> workoutExercises;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    // constructors, getters, setters and toString
+}
+```
+
+The Workout class made me realise I forgot something crucial. I forgot about the User class and I had to go back and update this guide.
+
+We have ```@ManyToOne``` for the user since you can have many workouts linking to one user.
+
+This is opposite what we have in the User class as we want one user linking to many workouts, hence @OneToMany.
+
+Best way to remember which one to use is by following this simple guide I made for myself. I will use Workout class as an example.
+
+```@ManyToOne``` annotation has two sides to it, the left side ```Many``` and the right side ```One```
+
+Imagine that you remove all the other fields and keep just the ```private User user``` you then remove all the spaces and formating.
+
+This would leave you with one long line of code.
+
+```Many``` is closer to the ```public class Workout``` while ```One``` is closer to the ```private User user```
+
+The reason why Workout class is the owning side goes back to our table above.
+
+```@ManyToOne``` only has the Owning side and doesn't have the inverse side.
+
+Similarly, in our User class ```@OneToMany``` can only be the inverse side.
+
+This also checks out as Workout class does not have foreign key that would link back to user.
 
