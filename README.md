@@ -555,3 +555,49 @@ If our id is null we know something, and we will most likely get null pointer ex
 Another thing we need to change is all the getters and setters for the id fields.
 
 While I was here I also cleaned up some toString() methods as you should not have any relational data in them.
+
+### Commit 4: Fixing Flyway error by dropping foreign keys
+
+Big mistake I made in the last commit was not running the application before commiting changes.
+
+Lesson for next time is to always make sure I run the code before I make the commit.
+
+To fix this We need to drop the foreign keys first where appropriate, change the tables and then re-assign the foreign keys:
+
+```sql
+-- Drop Foreign Keys first
+ALTER TABLE workouts DROP FOREIGN KEY workouts_ibfk_1;
+ALTER TABLE workout_exercises DROP FOREIGN KEY workout_exercises_ibfk_1;
+ALTER TABLE workout_exercises DROP FOREIGN KEY workout_exercises_ibfk_2;
+
+-- Change to BIGINT
+ALTER TABLE users MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE exercises MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE workouts MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE workouts MODIFY COLUMN user_id BIGINT NOT NULL;
+
+ALTER TABLE workout_exercises MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE workout_exercises MODIFY COLUMN workout_id BIGINT NOT NULL;
+ALTER TABLE workout_exercises MODIFY COLUMN exercise_id BIGINT NOT NULL;
+
+-- Add the Foreign keys again
+ALTER TABLE workouts ADD CONSTRAINT workouts_ibfk_1 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE workout_exercises ADD CONSTRAINT workout_exercises_ibfk_1 FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE;
+ALTER TABLE workout_exercises ADD CONSTRAINT workout_exercises_ibfk_2 FOREIGN KEY (exercise_id) REFERENCES exercises(id);
+```
+
+Simply running this after the failed attempt will not work.
+
+I simply deleted the ```V2.0__id_refactor_to_bigint.sql``` row from the ```flyway_schema_history``` table
+
+I did this by using MySQL Workbench. I will have to try a different approach next time, but wanted to see if doing this will work first.
+
+I'm sure there is a easier way to make this work.
+
+Inside MySQL Workbench I was able to easily find the ```workout_exercises_ibfk_1``` and ```workout_exercises_ibfk_2```
+
+Very useful way to make sure the changes worked is to use, for example ```DESCRIBE users;``` sql query.
+
+This gives you basic information about the columns inside your database.
