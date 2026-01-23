@@ -9,7 +9,7 @@ public class WorkoutExercise {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private int id;
+    private Long id;
 
     @Column(name = "sets")
     private int sets;
@@ -41,11 +41,11 @@ public class WorkoutExercise {
         this.exerciseOrder = exerciseOrder;
     }
 
-    public int getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
@@ -105,8 +105,6 @@ public class WorkoutExercise {
                 ", reps=" + reps +
                 ", weight=" + weight +
                 ", exerciseOrder=" + exerciseOrder +
-                ", workout=" + workout +
-                ", exercise=" + exercise +
                 '}';
     }
 }

@@ -1,4 +1,4 @@
-### Project description
+## Project description
 
 This project serves as API for an exercise tracker.
 
@@ -10,7 +10,7 @@ Users will be able to log in or register.
 
 Once the user is logged in they will be able to create new workouts as well as see their workout history.
 
-### About this document
+## About this document
 
 This document is here to serve as a development journal.
 
@@ -30,7 +30,7 @@ This will allow for an easier search in case that is required in the future.
 
 I will also see what else can improve as I continue so that the next project can also be improved.
 
-### Commit 1: Initial commit
+## Commit 1: Initial commit
 
 The very first step in this project is using the Spring Initializr.
 
@@ -114,7 +114,7 @@ Got VCS -> Enable Version Control Integration
 
 Once this is done you need to make sure you are logged in with your GitHub account then go Git -> GitHub -> Share Project on GitHub
 
-### Commit 2: Database Setup and Flyway
+## Commit 2: Database Setup and Flyway
 
 After reviewing my previous project, there was one clear area that had I had to improve upon and that's how I handle database creation.
 
@@ -241,7 +241,7 @@ At the moment this is a good starting point for our database.
 
 I can always expand it in the future as I develop this API. Flyway will make it easier to do so.
 
-### Commit 3: User, Workout, Exercise and WorkoutExercise entities
+## Commit 3: User, Workout, Exercise and WorkoutExercise entities
 
 This project is all about improving on the previous one. For this reason I want to have more meaningful commit names.
 
@@ -491,3 +491,67 @@ Similarly, in our User class ```@OneToMany``` can only be the inverse side.
 
 This also checks out as Workout class does not have foreign key that would link back to user.
 
+### Commit 4: JpaRepository, refactor to Long IDs and toString() clean up
+
+This is most likely the easiest commit for this project. However, I still wanted to delve deeper and learn more than before.
+
+```java
+public interface UserRepository extends JpaRepository<User, Long> {
+}
+```
+
+```java
+public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
+}
+```
+
+```java
+public interface WorkoutRepository extends JpaRepository<Workout, Long> {
+}
+```
+
+```java
+public interface WorkoutExerciseRepository extends JpaRepository<WorkoutExercise, Long> {
+}
+```
+
+The above interfaces extend JpaRepository which providees us with common CRUD operations that we will need for this project.
+
+I was taught to not put any annotations inside interfaces and only use them for implementation classes.
+
+For JpaRepository you don't create implementation class, this is something Spring Boot creates for you.
+
+However, you can include @Repository annotation for JpaRepository interfaces.
+
+From what I have seen, there are many reason to use it or not to. I will stick with what I was taught for now.
+
+Another thing I realised at this point is that I always used Integer for my primary keys and this is fine for small projects.
+
+For real world applications, I should be using Long. For this reason I decided to refactor my code and my database.
+
+Luckily we are using Flyway and the process for this is easy. I simply create this file:
+
+```V2.0__id_refactor_to_bigint.sql```
+
+```sql
+ALTER TABLE users MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE exercises MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+
+ALTER TABLE workouts MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE workouts MODIFY COLUMN user_id BIGINT NOT NULL;
+
+ALTER TABLE workout_exercises MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
+ALTER TABLE workout_exercises MODIFY COLUMN workout_id BIGINT NOT NULL;
+ALTER TABLE workout_exercises MODIFY COLUMN exercise_id BIGINT NOT NULL;
+```
+
+Along with database changes we need to change our entity classes to Long wrapper class and not the long primitive.
+
+The reason is that the long primitive has the default value as 0 while Long wrapper class has it as null.
+
+If our id is null we know something, and we will most likely get null pointer exception.
+
+Another thing we need to change is all the getters and setters for the id fields.
+
+While I was here I also cleaned up some toString() methods as you should not have any relational data in them.
