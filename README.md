@@ -523,7 +523,7 @@ For JpaRepository you don't create implementation class, this is something Sprin
 
 However, you can include @Repository annotation for JpaRepository interfaces.
 
-From what I have seen, there are many reason to use it or not to. I will stick with what I was taught for now.
+From what I have seen, there are many reason to use it or not to. I will stick with what I was taught for now and not include it.
 
 Another thing I realised at this point is that I always used Integer for my primary keys and this is fine for small projects.
 
@@ -556,13 +556,13 @@ Another thing we need to change is all the getters and setters for the id fields
 
 While I was here I also cleaned up some toString() methods as you should not have any relational data in them.
 
-### Commit 4: Fixing Flyway error by dropping foreign keys
+### Commit 5: Fixing Flyway error by dropping foreign keys
 
 Big mistake I made in the last commit was not running the application before commiting changes.
 
 Lesson for next time is to always make sure I run the code before I make the commit.
 
-To fix this We need to drop the foreign keys first where appropriate, change the tables and then re-assign the foreign keys:
+To fix this we need to drop the foreign keys first where appropriate, change the tables and then re-assign the foreign keys:
 
 ```sql
 -- Drop Foreign Keys first
@@ -594,10 +594,148 @@ I simply deleted the ```V2.0__id_refactor_to_bigint.sql``` row from the ```flywa
 
 I did this by using MySQL Workbench. I will have to try a different approach next time, but wanted to see if doing this will work first.
 
-I'm sure there is a easier way to make this work.
+I'm sure there is an easier way to make this work.
 
 Inside MySQL Workbench I was able to easily find the ```workout_exercises_ibfk_1``` and ```workout_exercises_ibfk_2```
 
 Very useful way to make sure the changes worked is to use, for example ```DESCRIBE users;``` sql query.
 
 This gives you basic information about the columns inside your database.
+
+### Commit 6: UserService and SecurityConfig for password encryption
+
+I decided to improve the service layer structure this time around.
+
+In order to achieve this I created two packages, ```service``` and ```service.impl```
+
+I decided to make a handy table for the most useful JpaRepository methods in order to help me with CRUD operations.
+
+#### JPA Repository default methods
+
+| Method                      | Description                                                           |
+|-----------------------------|-----------------------------------------------------------------------|
+| S save(S entity)            | Saves the entity unless it already exists, then it updates it instead |
+| Optional<T> findById(ID id) | Retrieves an entity by its id.                                        |
+| void delete(T entity)       | Deletes a given entity                                                |
+| void deleteById(ID id)      | Deletes the entity with given id                                      |
+| long count()                | Returns the number of entities available                              |
+| Iterable<T> findAll()       | Returns all instances of the type                                     |
+| boolean exists(S example)   | Checks if the given data exists                                       |
+
+The above table will be very useful for creating future service classes.
+
+```java
+public interface UserService {
+
+    User findById(Long id);
+
+    User create(User user);
+
+    void deleteById(Long id);
+
+    List<User> getAll();
+
+    User update(Long id, User user);
+}
+```
+
+The above interface is our first service class.
+
+I wanted to create the basic methods we will most likely use in the future.
+
+If we need anything else we can simply add it without any issues.
+
+```java
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserRepository userRepository;
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    public UserServiceImpl(UserRepository userRepository,
+                           BCryptPasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    public User findById(Long id) {
+
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Could not find User with the id: " + id));
+    }
+
+    @Override
+    public User create(User user) {
+
+        User newUser = new User();
+
+        newUser.setUserName(user.getUserName());
+        newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        newUser.setEmail(user.getEmail());
+
+        return userRepository.save(newUser);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+
+        userRepository.deleteById(id);
+    }
+
+    @Override
+    public List<User> getAll() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public User update(Long id, User user) {
+
+        User existingUser = this.findById(id);
+
+        existingUser.setUserName(user.getUserName());
+        existingUser.setEmail(user.getEmail());
+
+        return userRepository.save(existingUser);
+    }
+}
+```
+
+The above code is the implementation of the interface.
+
+The ```findById()``` method allowed me to use ```.orElseThrow()``` method.
+
+This makes the code simpler and has the added benefit of returning User object instead of ```Optional<User>```
+
+I will definitely use it more when dealing with Optional.
+
+Originally I just had the ```save()``` method, but decided to split it into ```create()``` and ```update()```
+
+The reason for this is because of password encryption. I only want to encrypt the password when create new user.
+
+We might also add a method to update password in the future, but we are not focusing on security just yet, the focus for now is simple CRUD.
+
+```deleteById()``` and ```getAll()``` are self-explanatory and use the default JpaRepository methods.
+
+If the need arises I will create more complex logic.
+
+I learned my lesson from previous commit and when I ran the app, Spring could not find ```BCryptPasswordEncoder``` Bean.
+
+For this reason I created this very simple class:
+
+```java
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+}
+```
+
+It's just to satisfy this dependency. I will create more detailed security implementation once the app has some basic functions.
+
+I also want to make my commits a little bit shorter. I realised it takes me too long between every commit.
+
