@@ -355,14 +355,14 @@ The field in our example would look something like this ```private List<WorkoutE
 
 Note that mappedBy can only be used for ```@OneToMany``` or ```@ManyToMany```
 
-| Annotation  | Which Side | What It Uses                      | Java field you apply it to             |
-|-------------|-----------|-----------------------------------|----------------------------------------|
-| @ManyToOne  | Owning    | @JoinColumn(name = "Foreign key") | ```private Workout workout```          |
-| @ManyToMany | Owning    | @JoinTable(...)                   | ```private List<Role> roles;```        |
-| @ManyToMany | Inverse   | mappedBy = "Java field name"      | ```private List<User> users;```        |
-| @OneToOne   | Inverse   | mappedBy = "Java field name"      | ```private User user```                |
-| @OneToOne   | Owning    | @JoinColumn(name = "Foreign key") | ```private UserProfile profile;```     |
-| @OneToMany  | Inverse   | mappedBy = "Java field name"      | ```private List<Exercises> exercises``` |
+| Annotation  | Which Side  | What It Uses                      | Java field you apply it to              |
+|-------------|-------------|-----------------------------------|-----------------------------------------|
+| @ManyToOne  | Owning      | @JoinColumn(name = "Foreign key") | ```private Workout workout```           |
+| @ManyToMany | Owning      | @JoinTable(...)                   | ```private List<Role> roles;```         |
+| @ManyToMany | Inverse     | mappedBy = "Java field name"      | ```private List<User> users;```         |
+| @OneToOne   | Inverse     | mappedBy = "Java field name"      | ```private User user```                 |
+| @OneToOne   | Owning      | @JoinColumn(name = "Foreign key") | ```private UserProfile profile;```      |
+| @OneToMany  | Inverse     | mappedBy = "Java field name"      | ```private List<Exercises> exercises``` |
 
 This brings us to our real world example and our entity setup.
 
@@ -738,4 +738,67 @@ public class SecurityConfig {
 It's just to satisfy this dependency. I will create more detailed security implementation once the app has some basic functions.
 
 I also want to make my commits a little bit shorter. I realised it takes me too long between every commit.
+
+### Commit 7: ExerciseService
+
+I started this commit by organising my methods and picking a format to stick with.
+
+I moved the update method inside UserService higher up so that it is below the create method.
+
+It made no sense for it being all the way at the bottom.
+
+```java
+public class ExerciseServiceImpl implements ExerciseService {
+    
+    private final ExerciseRepository exerciseRepository;
+
+    @Autowired
+    public ExerciseServiceImpl(ExerciseRepository exerciseRepository) {
+        this.exerciseRepository = exerciseRepository;
+    }
+
+
+    @Override
+    public Exercise findById(Long id) {
+        return exerciseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Could not find Exercise with the id: " + id));
+    }
+
+    @Override
+    public Exercise create(Exercise exercise) {
+        
+        Exercise newExercise = new Exercise();
+        
+        newExercise.setName(exercise.getName());
+        
+        return exerciseRepository.save(newExercise);
+    }
+
+    @Override
+    public Exercise update(Long id, Exercise exercise) {
+        
+        Exercise existingExercise = this.findById(id);
+        
+        existingExercise.setName(exercise.getName());
+        
+        return exerciseRepository.save(existingExercise);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        
+        exerciseRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Exercise> getAll() {
+        
+        return exerciseRepository.findAll();
+    }
+}
+```
+
+The above code, as well as the interface, is very similar to our ```UserServiceImpl```
+
+These are just standard CRUD methods to get us started with this project.
 

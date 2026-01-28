@@ -42,17 +42,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteById(Long id) {
-
-        userRepository.deleteById(id);
-    }
-
-    @Override
-    public List<User> getAll() {
-        return userRepository.findAll();
-    }
-
-    @Override
     public User update(Long id, User user) {
 
         User existingUser = this.findById(id);
@@ -61,5 +50,17 @@ public class UserServiceImpl implements UserService {
         existingUser.setEmail(user.getEmail());
 
         return userRepository.save(existingUser);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+
+        userRepository.deleteById(id);
+    }
+
+    @Override
+    public List<User> getAll() {
+
+        return userRepository.findAll();
     }
 }
