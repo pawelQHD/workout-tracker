@@ -802,3 +802,69 @@ The above code, as well as the interface, is very similar to our ```UserServiceI
 
 These are just standard CRUD methods to get us started with this project.
 
+### Commit 8: WorkoutService
+
+```java
+public class WorkoutServiceImpl implements WorkoutService {
+    
+    private final WorkoutRepository workoutRepository;
+
+    public WorkoutServiceImpl(WorkoutRepository workoutRepository) {
+        this.workoutRepository = workoutRepository;
+    }
+
+    @Override
+    public Workout findById(Long id) {
+        
+        return workoutRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Could not find Workout with the id: " + id));
+    }
+
+    @Override
+    public Workout create(Workout workout) {
+        
+        Workout newWorkout = new Workout();
+        
+        newWorkout.setName(workout.getName());
+        newWorkout.setNotes(workout.getNotes());
+        newWorkout.setUser(workout.getUser());
+        newWorkout.setWorkoutExercises(workout.getWorkoutExercises());
+        
+        return workoutRepository.save(newWorkout);
+    }
+
+    @Override
+    public Workout update(Long id, Workout workout) {
+        
+        Workout exisitngWorkout = this.findById(id);
+        
+        exisitngWorkout.setName(workout.getName());
+        exisitngWorkout.setNotes(workout.getNotes());
+        exisitngWorkout.setWorkoutExercises(workout.getWorkoutExercises());
+        
+        return workoutRepository.save(exisitngWorkout);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        
+        workoutRepository.deleteById(id);
+
+    }
+
+    @Override
+    public List<Workout> getAll() {
+        
+        return workoutRepository.findAll();
+    }
+}
+```
+
+The only consideration for the above code is how we will set the user.
+
+Since the user will already be logged in, we can simply grab the user from the session.
+
+However, I'm not sure what's the best way to do this and I will have to think about it when implementing it.
+
+For now this code will be sufficient.
+
