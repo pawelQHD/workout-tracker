@@ -27,6 +27,11 @@ public class Exercise {
         this.name = name;
     }
 
+    public void copyEntity(Exercise exercise){
+
+        this.setName(exercise.getName());
+    }
+
     public Long getId() {
         return id;
     }

@@ -868,3 +868,140 @@ However, I'm not sure what's the best way to do this and I will have to think ab
 
 For now this code will be sufficient.
 
+### Commit 9: WorkoutExerciseService and copyEntity() helper method
+
+When working on this commit, I realised there was a lot of repetition with copying and pasting entities from one to the other.
+
+The solution is the helper method inside each of the entities. Here is the WorkoutExerciseServiceImpl class:
+
+```java
+public class WorkoutExerciseServiceImpl implements WorkoutExerciseService {
+
+    private final WorkoutExerciseRepository workoutExerciseRepository;
+
+    public WorkoutExerciseServiceImpl(WorkoutExerciseRepository workoutExerciseRepository) {
+        this.workoutExerciseRepository = workoutExerciseRepository;
+    }
+
+    @Override
+    public WorkoutExercise findById(Long id) {
+
+        return workoutExerciseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Could not find WorkoutExercise with id: " + id));
+    }
+
+    @Override
+    public WorkoutExercise create(WorkoutExercise workoutExercise) {
+
+        WorkoutExercise newWorkoutExercise = new WorkoutExercise();
+        newWorkoutExercise.copyEntity(workoutExercise);
+        return workoutExerciseRepository.save(newWorkoutExercise);
+    }
+
+    @Override
+    public WorkoutExercise update(Long id, WorkoutExercise workoutExercise) {
+
+        WorkoutExercise existingWorkoutExercise = this.findById(id);
+        existingWorkoutExercise.copyEntity(workoutExercise);
+        return workoutExerciseRepository.save(existingWorkoutExercise);
+    }
+
+    @Override
+    public void deleteById(Long id) {
+
+        workoutExerciseRepository.deleteById(id);
+    }
+
+    @Override
+    public List<WorkoutExercise> getAll() {
+
+        return workoutExerciseRepository.findAll();
+    }
+}
+```
+
+In the above code we no longer write lines such as ```exisitngWorkoutExercises.setWeight(workoutExercise.getWeight());```
+
+Instead, we are using a helper method from our ```WorkoutExercise``` class:
+
+```java
+    public void copyEntity(WorkoutExercise copy){
+
+        this.setReps(copy.getReps());
+        this.setSets(copy.getSets());
+        this.setWeight(copy.getWeight());
+        this.setExerciseOrder(copy.getExerciseOrder());
+        this.setExercise(copy.getExercise());
+        this.setWorkout(copy.getWorkout());
+    }
+```
+
+This makes the code a lot cleaner and easier to add more fields in the future.
+
+I implemented this method for all of our entities with few important caveats.
+
+```java
+    public void copyEntity(Workout workout){
+
+        this.setName(workout.getName());
+        this.setNotes(workout.getNotes());
+        this.setWorkoutExercises(workout.getWorkoutExercises());
+    }
+```
+
+The above code is inside ```Workout.java``` class
+
+For the workout, we don't include the user. This is because I'm still unsure about the implementation.
+
+I will most likely grab the user from the session for this assignment to make it easier and more reliable.
+
+```java
+    @Override
+    public Workout create(Workout workout) {
+
+        Workout newWorkout = new Workout();
+        newWorkout.copyEntity(workout);
+        newWorkout.setUser(workout.getUser());
+        return workoutRepository.save(newWorkout);
+    }
+
+    @Override
+    public Workout update(Long id, Workout workout) {
+
+        Workout exisitngWorkout = this.findById(id);
+        exisitngWorkout.copyEntity(workout);
+        return workoutRepository.save(exisitngWorkout);
+    }
+```
+
+The above code is inside ```WorkoutServiceImpl.java``` class
+
+We simply add the user for the ```create()``` method separate. This will allow us to add a custom implementation of this later.
+
+For the ```update()``` we don't need to assign the user so we simply skip it.
+
+```java
+    public void copyEntity(Exercise exercise){
+
+        this.setName(exercise.getName());
+    }
+```
+
+The above code is inside ```Exercise.java``` class
+
+Even tho this class has a single field for now, we still include it so that it's consistent and easier to add more fields later.
+
+```java
+    public void copyEntity(User user){
+
+        this.setUserName(user.getUserName());
+        this.setEmail(user.getEmail());
+    }
+```
+
+The above method is inside User entity.
+
+We skip the password for this one as it's encrypted, and we don't want to be copying.
+
+We also don't want to modify it as we will do that in a future update.
+

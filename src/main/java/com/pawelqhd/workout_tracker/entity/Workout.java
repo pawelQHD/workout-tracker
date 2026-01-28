@@ -35,6 +35,13 @@ public class Workout {
         this.notes = notes;
     }
 
+    public void copyEntity(Workout workout){
+
+        this.setName(workout.getName());
+        this.setNotes(workout.getNotes());
+        this.setWorkoutExercises(workout.getWorkoutExercises());
+    }
+
     public Long getId() {
         return id;
     }

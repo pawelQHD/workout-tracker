@@ -41,6 +41,16 @@ public class WorkoutExercise {
         this.exerciseOrder = exerciseOrder;
     }
 
+    public void copyEntity(WorkoutExercise copy){
+
+        this.setReps(copy.getReps());
+        this.setSets(copy.getSets());
+        this.setWeight(copy.getWeight());
+        this.setExerciseOrder(copy.getExerciseOrder());
+        this.setExercise(copy.getExercise());
+        this.setWorkout(copy.getWorkout());
+    }
+
     public Long getId() {
         return id;
     }

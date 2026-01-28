@@ -58,6 +58,12 @@ public class User {
         createdAt = LocalDateTime.now();
     }
 
+    public void copyEntity(User user){
+
+        this.setUserName(user.getUserName());
+        this.setEmail(user.getEmail());
+    }
+
     public Long getId() {
         return id;
     }

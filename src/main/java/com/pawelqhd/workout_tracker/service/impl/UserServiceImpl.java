@@ -13,7 +13,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    private BCryptPasswordEncoder passwordEncoder;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
@@ -33,11 +33,8 @@ public class UserServiceImpl implements UserService {
     public User create(User user) {
 
         User newUser = new User();
-
-        newUser.setUserName(user.getUserName());
+        newUser.copyEntity(user);
         newUser.setPassword(passwordEncoder.encode(user.getPassword()));
-        newUser.setEmail(user.getEmail());
-
         return userRepository.save(newUser);
     }
 
@@ -45,10 +42,7 @@ public class UserServiceImpl implements UserService {
     public User update(Long id, User user) {
 
         User existingUser = this.findById(id);
-
-        existingUser.setUserName(user.getUserName());
-        existingUser.setEmail(user.getEmail());
-
+        existingUser.copyEntity(user);
         return userRepository.save(existingUser);
     }
 

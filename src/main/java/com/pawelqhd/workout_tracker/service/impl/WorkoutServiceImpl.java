@@ -25,12 +25,8 @@ public class WorkoutServiceImpl implements WorkoutService {
     public Workout create(Workout workout) {
 
         Workout newWorkout = new Workout();
-
-        newWorkout.setName(workout.getName());
-        newWorkout.setNotes(workout.getNotes());
+        newWorkout.copyEntity(workout);
         newWorkout.setUser(workout.getUser());
-        newWorkout.setWorkoutExercises(workout.getWorkoutExercises());
-
         return workoutRepository.save(newWorkout);
     }
 
@@ -38,11 +34,7 @@ public class WorkoutServiceImpl implements WorkoutService {
     public Workout update(Long id, Workout workout) {
 
         Workout exisitngWorkout = this.findById(id);
-
-        exisitngWorkout.setName(workout.getName());
-        exisitngWorkout.setNotes(workout.getNotes());
-        exisitngWorkout.setWorkoutExercises(workout.getWorkoutExercises());
-
+        exisitngWorkout.copyEntity(workout);
         return workoutRepository.save(exisitngWorkout);
     }
 

@@ -27,9 +27,7 @@ public class ExerciseServiceImpl implements ExerciseService {
     public Exercise create(Exercise exercise) {
 
         Exercise newExercise = new Exercise();
-
-        newExercise.setName(exercise.getName());
-
+        newExercise.copyEntity(exercise);
         return exerciseRepository.save(newExercise);
     }
 
@@ -37,9 +35,7 @@ public class ExerciseServiceImpl implements ExerciseService {
     public Exercise update(Long id, Exercise exercise) {
 
         Exercise existingExercise = this.findById(id);
-
-        existingExercise.setName(exercise.getName());
-
+        existingExercise.copyEntity(exercise);
         return exerciseRepository.save(existingExercise);
     }
 
