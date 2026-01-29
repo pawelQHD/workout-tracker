@@ -1005,3 +1005,107 @@ We skip the password for this one as it's encrypted, and we don't want to be cop
 
 We also don't want to modify it as we will do that in a future update.
 
+### Commit 10: Learning and implementing User and Exercise DTOs
+
+I didn't learn about DTOs and have no idea how they work. I came about them while doing research for my app.
+
+The very first step is to learn what they are and how they will help my app. I want to have a solid understanding first.
+
+The best analogy I can come up with is how classes work in RPG. You can have a main class such as Mage.
+
+Mage can specialise into two subclasses such as Fire Mage and Healer. They both specialise in different aspects.
+
+You need both damage and healing to win an encounter effectively and having two base class Mages would not be enough.
+
+The same goes to DTOs. You might have specific functions that you need that you might want to perform.
+
+For example, when sending response with the User class, you might not want to include password for security reason.
+
+You can instead make UserResponseDTO that only has id, Username, Email fields.
+
+The same goes when creating a user. You don't have id field as this is something that database generates for us.
+
+We can create UserCreateDTO that has Username, Password and Email.
+
+Both UserResponseDTO and UserCreateDTO are important to create a user. One to set up data and one to confirm it to the user.
+
+DTOs are POJO classes and don't have any annotations and are not linked to database like the base Entity classes do.
+
+```java
+public class UserCreateDTO {
+
+    private String userName;
+    private String password;
+    private String email;
+
+    public UserCreateDTO() {
+    }
+
+    public UserCreateDTO(String userName, String password, String email) {
+        this.userName = userName;
+        this.password = password;
+        this.email = email;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+}
+```
+
+The above code is the ```UserCreateDTO``` including all the constructors, getters and setters.
+
+This is the theme when it comes to DTO and most of them will look like this.
+
+```java
+public class UserResponseDTO {
+
+    private Long id;
+    private String userName;
+    private String email;
+    
+    // Constructors, getters and setters
+}
+```
+
+```java
+public class ExerciseCreateDTO {
+
+    private String name;
+    
+    // Constructors, getters and setters
+}
+```
+
+```java
+public class ExerciseResponseDTO {
+
+    private Long id;
+    private String name;
+    
+    // Constructors, getters and setters
+}
+```
+
+I followed the same structure for the Exercise DTOs. Exercise entity is very simple for now but I included DTOs for consistency.
+
