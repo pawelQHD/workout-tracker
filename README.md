@@ -1109,3 +1109,82 @@ public class ExerciseResponseDTO {
 
 I followed the same structure for the Exercise DTOs. Exercise entity is very simple for now but I included DTOs for consistency.
 
+### Commit 11: Workout and WorkoutExercise DTOs
+
+This commit is very similar to the previous one, finishing the remaining DTOs.
+
+```java
+public class WorkoutCreateDTO {
+
+    private String name;
+    private String notes;
+
+    // Constructors, getters and setters
+}
+```
+
+```java
+public class WorkoutResponseDTO {
+
+    private Long id;
+    private String name;
+    private String notes;
+    private List<WorkoutExerciseResponseDTO> exercises;
+
+    // Constructors, getters and setters
+}
+```
+
+The ```WorkoutCreateDTO``` is very simple and similar to our Exercise DTOs.
+
+The change from our standard DTO design is with ```WorkoutResponseDTO```
+
+The key to DTOs is not to expose raw data that might include information that is not necessary for the front end.
+
+However, we still want to know what kind of exercises are inside every workout.
+
+For this reason we create a List of ```WorkoutExerciseResponseDTO``` this way the font end can see this list without exposing the entity.
+
+```java
+public class WorkoutExerciseCreateDTO {
+
+    private Long workoutId;
+    private Long exerciseId;
+    private int sets;
+    private int reps;
+    private double weight;
+    private int exerciseOrder;
+
+    // Constructors, getters and setters
+}
+```
+
+The above code also includes ids for workout and exercise in the Long format.
+
+This is once again to prevent front end from seeing unnecessary information.
+
+```java
+public class WorkoutExerciseResponseDTO {
+
+    private Long id;
+    private Long workoutId;
+    private ExerciseResponseDTO exercise;
+    private int sets;
+    private int reps;
+    private double weight;
+    private int exerciseOrder;
+
+    // Constructors, getters and setters
+}
+```
+
+The above code includes ```ExerciseResponseDTO``` but it doesn't include ```WorkoutResponseDTO```
+
+This is because we want to avoid circular dependency and this is what I have concluded from my research.
+
+We will most likely already know which workout we are in when queuing this data so adding it here is redundant.
+
+I'm not very confident about DTOs and I will find out if I have implemented them correctly once I start writing my controller classes.
+
+For now this is a good start with DTOs that gives me a solid foundation to improve upon.
+
