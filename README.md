@@ -1188,3 +1188,190 @@ I'm not very confident about DTOs and I will find out if I have implemented them
 
 For now this is a good start with DTOs that gives me a solid foundation to improve upon.
 
+### Commit 12: Exceptions and GlobalExceptionHandler
+
+This is another part of the application that I had to research in order to start implementing it.
+
+We start by creating exception package. Inside there we want to create our custom exceptions.
+
+```java
+public class BadRequestException extends RuntimeException{
+
+    public BadRequestException(String message){
+        super(message);
+    }
+}
+```
+
+```java
+public class ResourceAlreadyExistsException extends RuntimeException{
+
+    public ResourceAlreadyExistsException(String message){
+        super(message);
+    }
+}
+```
+
+```java
+public class ResourceNotFoundException extends RuntimeException{
+
+    public ResourceNotFoundException(String message){
+        super(message);
+    }
+}
+```
+
+The above three classes simply extend the RuntimeExceptions.
+
+The use super() to pass our message into the RuntimeException constructor.
+
+```java
+public class ErrorResponse {
+
+    private LocalDateTime timestamp;
+    private int status;
+    private String error;
+    private String message;
+    private String path;
+
+    public ErrorResponse(int status, String error, String message, String path) {
+        this.timestamp = LocalDateTime.now();
+        this.status = status;
+        this.error = error;
+        this.message = message;
+        this.path = path;
+    }
+    // getters and setters
+}
+```
+
+The above code is very similar to a DTOs that we have implemented in a previous commit.
+
+It's just a container that makes the error messages more streamlined.
+
+Just like in a DTO we only include the important information that we want to include.
+
+So far all the classes we have written were POJO classes. The next class is going to use Spring.
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+            ResourceNotFoundException ex,
+            WebRequest request
+    ) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "Not Found",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleResourceAlreadyExistsException(
+            ResourceAlreadyExistsException ex,
+            WebRequest request
+    ) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequestException(
+            BadRequestException ex,
+            WebRequest request
+    ) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGlobalException(
+            Exception ex,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal Server Error",
+                ex.getMessage(),
+                request.getDescription(false).replace("uri=", "")
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+}
+```
+
+The above is new to me so I need to brake it down.
+
+```@RestControllerAdvice``` annotation is a global exception handler for the REST API.
+
+It combines two annotations.
+
+```@ControllerAdvice``` which applies this class to all controllers  and ```@ResponseBody``` which coverts return values to JSON.
+
+The benefit of the ```@RestControllerAdvice``` is that it handles exceptions in all controller classes.
+
+When the exception occurs, Spring will look into this class and assign an appropriate exception.
+
+This means we don't have to write exception handling code in every controller method.
+
+The way we write this code also allows us to have exceptions formated the way we want instead of long exception messages.
+
+```@ExceptionHandler(ResourceNotFoundException.class)``` tells Spring to use this method whenever the exception in braces is thrown.
+
+```ResponseEntity<ErrorResponse>````return type contains two parts.
+
+The ```ResponseEntity``` represents the entire HTTP response including status code, headers and body.
+
+```<ErrorResponse>``` is the DTO like class that we have just written.
+
+This is simply a container and this is where we will use it to send a response once this method executes.
+
+```WebRequest``` contains information about the HTTP request that caused the exception.
+
+We then create new ```ErrorResponse``` object and fill in all the necessary information inside it's constructor parameters.
+
+```HttpStatus.NOT_FOUND.value()``` this line get's the numeric status code for the HTTP status that we are looking for.
+
+In this case it's the ```NOT_FOUND``` status.
+
+Next we simply have ```"Not Found"```, this one seems redundant at first, but when we see the exception we want to see what it is.
+
+Otherwise, we would just have the code, and we would have to look up what the error is each time.
+
+```ex.getMessage()``` gets the message of the exception which is also important to display.
+
+```request.getDescription(false).replace("uri=", "")``` this part clean up the path so that it is easier to read.
+
+Without it, we would have something like ```uri=/api/users/1``` and with it, we just have ```/api/users/1```
+
+We then return the result which will be converted into JSON.
+
+The finished product will be a neat exception message.
+
+Most of the time I prefer to write my own code. However, in this case I'm so new to this approach that I simply copied it.
+
+I did make this note and broke down each part to help me understand it as well as help me delve deeper for my future projects.
+
