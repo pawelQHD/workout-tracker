@@ -1323,7 +1323,7 @@ public class GlobalExceptionHandler {
 }
 ```
 
-The above is new to me so I need to brake it down.
+The above is new to me, so I need to brake it down.
 
 ```@RestControllerAdvice``` annotation is a global exception handler for the REST API.
 
@@ -1353,7 +1353,7 @@ This is simply a container and this is where we will use it to send a response o
 
 We then create new ```ErrorResponse``` object and fill in all the necessary information inside it's constructor parameters.
 
-```HttpStatus.NOT_FOUND.value()``` this line get's the numeric status code for the HTTP status that we are looking for.
+```HttpStatus.NOT_FOUND.value()``` this line gets the numeric status code for the HTTP status that we are looking for.
 
 In this case it's the ```NOT_FOUND``` status.
 
@@ -1374,4 +1374,132 @@ The finished product will be a neat exception message.
 Most of the time I prefer to write my own code. However, in this case I'm so new to this approach that I simply copied it.
 
 I did make this note and broke down each part to help me understand it as well as help me delve deeper for my future projects.
+
+### Commit 13: Testing Setup
+
+After finishing course aimed as Spring Boot testing, I decided it was perfect time to use this knowledge and write some tests.
+
+The first step is adding the dependency into my ```pom.xml``` file:
+
+```xml
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+```
+This dependency means we will be using in memory database that is quicker than connecting to real database.
+
+For this to work we will also use a separate ```application-test.properties``` file used just for testing:
+
+```properties
+spring.application.name=WorkoutTracker
+
+## H2 Test Database credentials
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=wt
+spring.datasource.password=password
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.h2.console.enabled=true
+spring.jpa.hibernate.ddl-auto=create-drop
+spring.jpa.show-sql = true
+
+## Disable Flyway
+spring.flyway.enabled=false
+
+## SQL Scripts
+
+sql.script.create.exercise=insert into exercises(name) values ('Bench Press')
+
+sql.script.delete.exercise=DELETE FROM exercises; ALTER TABLE exercises ALTER COLUMN id RESTART WITH 1
+```
+
+Important point for the .properties file is that we need to disable the flyway while testing.
+
+We also created sql scripts that we can reuse for our future test classes.
+
+```java
+package com.pawelqhd.workout_tracker.service.impl;
+
+import com.pawelqhd.workout_tracker.repository.ExerciseRepository;
+import com.pawelqhd.workout_tracker.service.ExerciseService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
+
+
+@TestPropertySource("/application-test.properties")
+@SpringBootTest
+public class ExerciseServiceImplTest {
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private ExerciseService service;
+
+    @Autowired
+    private ExerciseRepository exerciseRepository;
+
+    @Value("${sql.script.create.exercise}")
+    private String sqlCreateExercise;
+
+    @Value("${sql.script.delete.exercise}")
+    private String sqlDeleteExercise;
+
+    @BeforeEach
+    public void databaseSetup(){
+        jdbc.execute(sqlCreateExercise);
+    }
+
+    @Test
+    public void findExerciseById() {
+
+
+    }
+
+    @AfterEach
+    public void databaseCleanUp(){
+        jdbc.execute(sqlDeleteExercise);
+    }
+}
+```
+
+I haven't even begun writing proper test and I already found some issues with my code.
+
+Turns out I was missing @Service for ```ExerciseServiceImpl```, ```WorkoutExerciseServiceImpl``` and ```WorkoutServiceImpl```.
+
+Once I fixed this mistake my empty test from above passed without any compilation errors.
+
+The above code is just a simple setup to make sure our tests are set up properly and are ready to be implemented.
+
+I also added the following to my ```pom.xml``` file to fix the warning when running tests:
+
+```xml
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.5.4</version>
+				<configuration>
+					<argLine>
+						-XX:+EnableDynamicAgentLoading
+					</argLine>
+				</configuration>
+			</plugin>
+```
+
+Important decision I had to make was if I should be using the ```@SpringBootTest``` or ```@ExtendWith(MockitoExtension.class)```
+
+I decided to stick with ```@SpringBootTest``` since this is what my course covered and I want to practice this style of testing.
+
+For unit testing, this is not the best approach since you need to start the whole app in order for your tests to run.
+
+This is something I will change in my future projects, for now ```@SpringBootTest``` will be my choice even if it's not the most optimal.
+
 

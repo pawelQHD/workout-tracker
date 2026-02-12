@@ -1,12 +1,15 @@
 package com.pawelqhd.workout_tracker.service.impl;
 
 import com.pawelqhd.workout_tracker.entity.Exercise;
+import com.pawelqhd.workout_tracker.exception.ResourceNotFoundException;
 import com.pawelqhd.workout_tracker.repository.ExerciseRepository;
 import com.pawelqhd.workout_tracker.service.ExerciseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class ExerciseServiceImpl implements ExerciseService {
 
     private final ExerciseRepository exerciseRepository;
@@ -20,7 +23,7 @@ public class ExerciseServiceImpl implements ExerciseService {
     @Override
     public Exercise findById(Long id) {
         return exerciseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Could not find Exercise with the id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Could not find Exercise with the id: " + id));
     }
 
     @Override

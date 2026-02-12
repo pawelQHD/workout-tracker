@@ -3,9 +3,11 @@ package com.pawelqhd.workout_tracker.service.impl;
 import com.pawelqhd.workout_tracker.entity.Workout;
 import com.pawelqhd.workout_tracker.repository.WorkoutRepository;
 import com.pawelqhd.workout_tracker.service.WorkoutService;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class WorkoutServiceImpl implements WorkoutService {
 
     private final WorkoutRepository workoutRepository;
