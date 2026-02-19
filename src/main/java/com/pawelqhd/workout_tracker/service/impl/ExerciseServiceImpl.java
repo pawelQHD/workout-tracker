@@ -19,11 +19,23 @@ public class ExerciseServiceImpl implements ExerciseService {
         this.exerciseRepository = exerciseRepository;
     }
 
+    @Override
+    public boolean checkIfNull(Long id){
+
+        return exerciseRepository.findById(id).isPresent();
+    }
+
 
     @Override
     public Exercise findById(Long id) {
         return exerciseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Could not find Exercise with the id: " + id));
+    }
+
+    @Override
+    public Exercise findByName(String name){
+        return exerciseRepository.findByName(name)
+                .orElseThrow(() -> new ResourceNotFoundException("Could not find Exercise with the name: " + name));
     }
 
     @Override

@@ -6,7 +6,11 @@ import java.util.List;
 
 public interface ExerciseService {
 
+    boolean checkIfNull(Long id);
+
     Exercise findById(Long id);
+
+    Exercise findByName(String name);
 
     Exercise create(Exercise exercise);
 

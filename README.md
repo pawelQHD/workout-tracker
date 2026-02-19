@@ -1503,3 +1503,169 @@ For unit testing, this is not the best approach since you need to start the whol
 This is something I will change in my future projects, for now ```@SpringBootTest``` will be my choice even if it's not the most optimal.
 
 
+### Commit 14: Testing ExerciseServiceImpl
+
+I decided to add the following method inside the ```ExerciseServiceImpl```
+
+```java
+    @Override
+    public boolean checkIfNull(Long id){
+
+        return exerciseRepository.findById(id).isPresent();
+    }
+```
+
+The course I finished had similar method and I can now see how useful it can be, especially for testing.
+
+It's also useful because the method ```findById()``` from the same class throws an exception if no id is found.
+
+We will be able to use checkIfNull before calling findById now which is very handy.
+
+While writing tests I also realised another handy method to have is ```findByName()``` which I also added to ```ExerciseServiceImpl```
+
+```java
+    @Override
+    public Exercise findByName(String name){
+        return exerciseRepository.findByName(name)
+                .orElseThrow(() -> new ResourceNotFoundException("Could not find Exercise with the name: " + name));
+    }
+```
+
+Both methods above were also added to the ```ExerciseService``` interface.
+
+In order to add the ```findByName()``` method I had to create a custom method inside ```ExerciseRepository```
+
+```java
+public interface ExerciseRepository extends JpaRepository<Exercise, Long> {
+
+    public Optional<Exercise> findByName(String name);
+}
+```
+I decided it should return Optional instead of Exercise directly. I have few reasons for it.
+
+I want to keep it consistent and finById returns Optional.
+
+Another reason is using Optionals ```.isPresent()``` as well as ```.orElseThrow()``` methods which are very handy and make the code cleaner in my opinion.
+
+This brings us to the updated Test class for the ```ExerciseServiceImpl```
+
+```java
+@TestPropertySource("/application-test.properties")
+@SpringBootTest
+public class ExerciseServiceImplTest {
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private ExerciseService exerciseService;
+
+    @Autowired
+    private ExerciseRepository exerciseRepository;
+
+    @Value("${sql.script.create.exercise}")
+    private String sqlCreateExercise;
+
+    @Value("${sql.script.delete.exercise}")
+    private String sqlDeleteExercise;
+
+    @BeforeEach
+    public void databaseSetup(){
+        jdbc.execute(sqlCreateExercise);
+    }
+
+    @Test
+    public void checkIfExerciseIsNull(){
+
+        assertFalse(exerciseRepository.findById(0L).isPresent());
+        assertFalse(exerciseService.checkIfNull(0L), "Exercise should be null here");
+        assertTrue(exerciseService.checkIfNull(1L), "Exercise should NOT be null here");
+    }
+
+    @Test
+    public void findExerciseByIdWithValidId() {
+
+        assertTrue(exerciseRepository.findById(1L).isPresent());
+
+        Exercise exercise = exerciseService.findById(1L);
+
+        assertEquals(exerciseRepository.findById(1L).get().getName(),
+                exercise.getName(), "Exercise name should match");
+    }
+
+    @Test
+    public void findExerciseByNameWithValidName(){
+
+        assertTrue(exerciseRepository.findByName("Bench Press").isPresent());
+
+        Exercise exercise = exerciseService.findByName("Bench Press");
+
+        assertEquals(exerciseRepository.findByName("Bench Press").get().getName(),
+                exercise.getName(), "Exercise name should match");
+    }
+
+    @Test
+    public void createExercise(){
+
+        exerciseService.create(new Exercise("Squat"));
+
+        Exercise createdExercise = exerciseRepository.findByName("Squat").get();
+
+        assertEquals("Squat", createdExercise.getName());
+    }
+
+    @Test
+    public void updateExercise(){
+
+        assertTrue(exerciseRepository.findById(1L).isPresent());
+        Exercise updatedExercise = exerciseRepository.findById(1L).get();
+        updatedExercise.setName("Dumbbell Bench Press");
+        exerciseService.update(1L, updatedExercise);
+
+        assertNotEquals("Bench Press",
+                exerciseRepository.findById(1L).get().getName(),
+                "Exercise with this name should not exist");
+        assertEquals("Dumbbell Bench Press",
+                exerciseRepository.findById(1L).get().getName(),
+                "Exercise should have been updated to this name");
+    }
+
+    @Test
+    public void deleteExerciseById(){
+
+        assertTrue(exerciseRepository.findById(1L).isPresent());
+        exerciseService.deleteById(1L);
+        assertFalse(exerciseRepository.findById(1L).isPresent());
+    }
+
+    @Test
+    public void getAllExercises(){
+
+        List<Exercise> allExercises = exerciseService.getAll();
+        assertEquals(1, allExercises.size());
+        exerciseRepository.save(new Exercise("Squat"));
+        allExercises = exerciseService.getAll();
+        assertEquals(2, allExercises.size());
+    }
+
+    @AfterEach
+    public void databaseCleanUp(){
+        jdbc.execute(sqlDeleteExercise);
+    }
+}
+```
+
+I was a bit worried about writing tests at the beginning, and it took me a bit of research and completing a course to finally understand it.
+
+The idea is to make sure your method works. What I like to do is test if the value exists first.
+
+For example, in ```findExerciseByIdWithValidId()``` I first check if the Exercise with id of 1 exists.
+
+I do this with ExerciseRepository because all tests should be independent of each other, and in this case I am testing retrieving something with id.
+
+Then I do the actual testing of whatever needs testing.
+
+Then I try and verify if the output matches my prediction.
+
+Following this setup for all my tests seems to be working fine and I dont see any issues with it for now.
+
