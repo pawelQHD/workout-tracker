@@ -1669,3 +1669,175 @@ Then I try and verify if the output matches my prediction.
 
 Following this setup for all my tests seems to be working fine and I dont see any issues with it for now.
 
+### Commit 15: Testing UserServiceImpl
+
+We begin similarly as with the last test class, there is one small change since we are dealing with passwords.
+
+We can create users and add them to the database without encrypting the password first.
+
+Our method inside UserServiceImpl called create() does have that function, but we are testing this method and cannot rely on it when testing.
+
+What I do instead is use ```BCryptPasswordEncoder``` to encode the password and then ```UserRepository``` to save it to the database.
+
+```java
+    @BeforeEach
+    public void databaseSetup(){
+
+        User user = new User();
+        user.setUserName("John123");
+        user.setPassword(passwordEncoder.encode("test123"));
+        user.setEmail("johndoe@example.com");
+        userRepository.save(user);
+    }
+```
+
+This change only affect the ```@BeforeEach``` and ```@AfterEach``` can stay the same with the exeption of the ```application-test.properties```
+
+```properties
+sql.script.delete.user=DELETE FROM users; ALTER TABLE users ALTER COLUMN id RESTART WITH 1
+```
+
+When trying to save the password I encountered an error where the password length in the database was 60 and for the entity it was 50.
+
+I had to change the entity to 60 for it to successfully save into our database.
+
+The tests I wrote were very similar to the last commit.
+
+One thing that I noticed was that there was no way for me to know if the password was handled properly.
+
+After some research I decided to settle on this test to make sure it works
+
+```java
+    @Test
+    public void isPasswordEncoded(){
+
+        User user = new User();
+        user.setUserName("Ana123");
+        user.setPassword("test123");
+        user.setEmail("anasmith@example.com");
+        userService.create(user);
+
+        assertNotEquals("test123", userRepository.findById(2L).get().getPassword(),
+                "Password should not be stored as a plain text");
+
+        assertTrue(passwordEncoder.matches("test123", userRepository.findById(2L).get().getPassword()),
+                "Passwords should match correctly");
+    }
+```
+
+I could have merged isPasswordEncoded() and createUser() tests in one, but it's good to separate tests so that they have their own purpose.
+
+Here is the full test class:
+
+```java
+@TestPropertySource("/application-test.properties")
+@SpringBootTest
+public class UserServiceImplTest {
+
+    @Autowired
+    private JdbcTemplate jdbc;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Value("${sql.script.delete.user}")
+    private String sqlDeleteUser;
+
+    @BeforeEach
+    public void databaseSetup(){
+
+        User user = new User();
+        user.setUserName("John123");
+        user.setPassword(passwordEncoder.encode("test123"));
+        user.setEmail("johndoe@example.com");
+        userRepository.save(user);
+    }
+
+    @Test
+    public void findUserByIdWithValidId(){
+
+        assertTrue(userRepository.findById(1L).isPresent());
+        assertEquals("John123", userService.findById(1L).getUserName(), "Username should match");
+    }
+
+    @Test
+    public void createUser(){
+
+        User user = new User();
+        user.setUserName("Ana123");
+        user.setPassword("test123");
+        user.setEmail("anasmith@example.com");
+        userService.create(user);
+
+        assertTrue(userRepository.findById(2L).isPresent());
+        assertFalse(userRepository.findById(3L).isPresent());
+    }
+
+    @Test
+    public void updateUser(){
+
+        assertTrue(userRepository.findById(1L).isPresent());
+
+        User existingUser = userRepository.findById(1L).get();
+        existingUser.setUserName("Ana123");
+        existingUser.setEmail("anasmith@example.com");
+        userService.update(1L, existingUser);
+
+        assertEquals("Ana123", userRepository.findById(1L).get().getUserName(), "Username should match");
+        assertEquals("anasmith@example.com", userRepository.findById(1L).get().getEmail(), "Email should match");
+
+    }
+
+    @Test
+    public void deleteUser(){
+
+        assertTrue(userRepository.findById(1L).isPresent());
+
+        userService.deleteById(1L);
+
+        assertFalse(userRepository.findById(1L).isPresent());
+    }
+
+    @Test
+    public void getAllUsers(){
+
+        assertEquals(1, userService.getAll().size());
+        User user = new User();
+        user.setUserName("Ana123");
+        user.setPassword(passwordEncoder.encode("test123"));
+        user.setEmail("anasmith@example.com");
+        userRepository.save(user);
+        assertEquals(2, userService.getAll().size());
+
+    }
+
+    @Test
+    public void isPasswordEncoded(){
+
+        User user = new User();
+        user.setUserName("Ana123");
+        user.setPassword("test123");
+        user.setEmail("anasmith@example.com");
+        userService.create(user);
+
+        assertNotEquals("test123", userRepository.findById(2L).get().getPassword(),
+                "Password should not be stored as a plain text");
+
+        assertTrue(passwordEncoder.matches("test123", userRepository.findById(2L).get().getPassword()),
+                "Passwords should match correctly");
+    }
+
+    @AfterEach
+    public void databaseCleanUp(){
+        jdbc.execute(sqlDeleteUser);
+    }
+}
+
+```
+
